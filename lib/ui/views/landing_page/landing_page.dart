@@ -1,6 +1,7 @@
 import 'package:fe_poc_tutorial_showcase/ui/widgets/quick_action_panel.dart';
 import 'package:fe_poc_tutorial_showcase/ui/widgets/tutorial_showcase/custom_showcase.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -12,31 +13,124 @@ class LandingPage extends StatefulWidget {
 class _LandingPageState extends State<LandingPage> {
   late final ShowcaseController _showcaseController = ShowcaseController(
     steps: [
+      // Menu 1 — lottie + text
       ShowcaseStep(
         title: 'Menu 1',
-        description: 'แตะที่นี่เพื่อเข้าถึง Menu 1 และตัวเลือกที่มีให้บริการ',
         placement: ShowcasePlacement.below,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor: 0.9,
+                child: Lottie.asset(
+                  'assets/lottie/homepage_step_01.json',
+                  height: 256,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            const Text(
+              'แตะที่นี่เพื่อเข้าถึง Menu 1 และตัวเลือกที่มีให้บริการ',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ],
+        ),
       ),
+      // Menu 2 — lottie + icon + text row
       ShowcaseStep(
         title: 'Menu 2',
-        description: 'Menu 2 ใช้สำหรับดำเนินการ Quick Action ได้อย่างรวดเร็ว',
         placement: ShowcasePlacement.below,
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor: 0.8,
+                child: Lottie.asset(
+                  'assets/lottie/homepage_step_02.json',
+                  height: 90,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Row(
+              children: const [
+                Icon(Icons.flash_on_rounded, size: 16, color: Colors.amber),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Quick Action ที่ใช้บ่อยที่สุด เข้าถึงได้ใน 1 แตะ',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
+      // Menu 3 — step list
       ShowcaseStep(
         title: 'Menu 3',
-        description: 'Menu 3 มี Shortcut สำหรับ Workflow ของคุณ',
         placement: ShowcasePlacement.below,
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _StepRow(number: '1', label: 'เลือก Workflow'),
+            const SizedBox(height: 4),
+            _StepRow(number: '2', label: 'กำหนดค่า'),
+            const SizedBox(height: 4),
+            _StepRow(number: '3', label: 'บันทึกและใช้งาน'),
+          ],
+        ),
       ),
+      // Menu 4 — highlighted badge + description (tailSize ใหญ่ขึ้น)
       ShowcaseStep(
         title: 'Menu 4',
-        description: 'ใช้ Menu 4 เพื่อเข้าถึงฟีเจอร์ที่ใช้บ่อย',
         placement: ShowcasePlacement.below,
         tailSize: 24,
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.shade50,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'ฟีเจอร์ใหม่',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.deepPurple,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'ใช้ Menu 4 เพื่อเข้าถึงฟีเจอร์ที่ใช้บ่อยได้รวดเร็วขึ้น',
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+          ],
+        ),
       ),
+      // Menu 5 — tags / chips
       ShowcaseStep(
         title: 'Menu 5',
-        description: 'Menu 5 เป็น Quick Action สุดท้ายของคุณ ลองแตะดูได้เลย!',
         placement: ShowcasePlacement.below,
+        content: Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            _TagChip(label: 'รายงาน'),
+            _TagChip(label: 'สรุปผล'),
+            _TagChip(label: 'Export'),
+          ],
+        ),
       ),
     ],
   );
@@ -65,6 +159,68 @@ class _LandingPageState extends State<LandingPage> {
         onPressed: () => _showcaseController.start(context),
         icon: const Icon(Icons.help_outline_rounded),
         label: const Text('Tutorial'),
+      ),
+    );
+  }
+}
+
+class _StepRow extends StatelessWidget {
+  const _StepRow({required this.number, required this.label});
+
+  final String number;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 18,
+          height: 18,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            number,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.black54),
+        ),
+      ],
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: Theme.of(context).colorScheme.onPrimaryContainer,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

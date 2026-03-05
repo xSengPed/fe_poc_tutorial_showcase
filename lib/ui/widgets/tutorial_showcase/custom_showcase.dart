@@ -17,13 +17,16 @@ enum ShowcasePlacement { above, below, leftOf, rightOf }
 class ShowcaseStep {
   ShowcaseStep({
     required this.title,
-    required this.description,
+    required this.content,
     this.placement = ShowcasePlacement.below,
     this.tailSize = 16.0,
   });
 
   final String title;
-  final String description;
+
+  /// Custom widget displayed in the balloon body below the title.
+  /// Can be any widget — Text, Column, Image, Lottie, etc.
+  final Widget content;
 
   /// Preferred placement of the balloon relative to the target widget.
   final ShowcasePlacement placement;
@@ -173,18 +176,26 @@ class _ShowcaseOverlay extends StatelessWidget {
     switch (preferred) {
       case ShowcasePlacement.above:
         if (target.top > minSpace) return ShowcasePlacement.above;
-        if (screen.height - target.bottom > minSpace) return ShowcasePlacement.below;
+        if (screen.height - target.bottom > minSpace) {
+          return ShowcasePlacement.below;
+        }
         return ShowcasePlacement.below;
       case ShowcasePlacement.below:
-        if (screen.height - target.bottom > minSpace) return ShowcasePlacement.below;
+        if (screen.height - target.bottom > minSpace) {
+          return ShowcasePlacement.below;
+        }
         if (target.top > minSpace) return ShowcasePlacement.above;
         return ShowcasePlacement.above;
       case ShowcasePlacement.leftOf:
         if (target.left > minSpace) return ShowcasePlacement.leftOf;
-        if (screen.width - target.right > minSpace) return ShowcasePlacement.rightOf;
+        if (screen.width - target.right > minSpace) {
+          return ShowcasePlacement.rightOf;
+        }
         return ShowcasePlacement.below;
       case ShowcasePlacement.rightOf:
-        if (screen.width - target.right > minSpace) return ShowcasePlacement.rightOf;
+        if (screen.width - target.right > minSpace) {
+          return ShowcasePlacement.rightOf;
+        }
         if (target.left > minSpace) return ShowcasePlacement.leftOf;
         return ShowcasePlacement.below;
     }
@@ -199,46 +210,62 @@ class _ShowcaseOverlay extends StatelessWidget {
     if (targetRect == null) return const SizedBox.shrink();
 
     final screenSize = MediaQuery.of(context).size;
-    final placement = _resolveActualPlacement(step.placement, targetRect, screenSize);
+    final placement = _resolveActualPlacement(
+      step.placement,
+      targetRect,
+      screenSize,
+    );
 
-    const balloonWidth = 240.0;
+    const edgePadding = 16.0;
+    final balloonWidth = screenSize.width - edgePadding * 2;
     const balloonContentHeight = 120.0;
     final tailSize = step.tailSize;
-    const edgePadding = 8.0;
 
     double left, top, tailOffset;
 
     switch (placement) {
       case ShowcasePlacement.above:
-        left = (targetRect.center.dx - balloonWidth / 2)
-            .clamp(edgePadding, screenSize.width - balloonWidth - edgePadding);
+        left = edgePadding;
         top = targetRect.top - balloonContentHeight - tailSize - edgePadding;
-        tailOffset = (targetRect.center.dx - left)
-            .clamp(tailSize * 2, balloonWidth - tailSize * 2);
+        tailOffset = (targetRect.center.dx - left).clamp(
+          tailSize * 2,
+          balloonWidth - tailSize * 2,
+        );
         break;
 
       case ShowcasePlacement.below:
-        left = (targetRect.center.dx - balloonWidth / 2)
-            .clamp(edgePadding, screenSize.width - balloonWidth - edgePadding);
+        left = edgePadding;
         top = targetRect.bottom + edgePadding;
-        tailOffset = (targetRect.center.dx - left)
-            .clamp(tailSize * 2, balloonWidth - tailSize * 2);
+        tailOffset = (targetRect.center.dx - left).clamp(
+          tailSize * 2,
+          balloonWidth - tailSize * 2,
+        );
         break;
 
       case ShowcasePlacement.leftOf:
         left = targetRect.left - balloonWidth - tailSize - edgePadding;
         top = (targetRect.center.dy - (balloonContentHeight + tailSize) / 2)
-            .clamp(edgePadding, screenSize.height - balloonContentHeight - tailSize - edgePadding);
-        tailOffset = (targetRect.center.dy - top)
-            .clamp(tailSize * 2, balloonContentHeight - tailSize * 2);
+            .clamp(
+              edgePadding,
+              screenSize.height - balloonContentHeight - tailSize - edgePadding,
+            );
+        tailOffset = (targetRect.center.dy - top).clamp(
+          tailSize * 2,
+          balloonContentHeight - tailSize * 2,
+        );
         break;
 
       case ShowcasePlacement.rightOf:
         left = targetRect.right + edgePadding;
         top = (targetRect.center.dy - (balloonContentHeight + tailSize) / 2)
-            .clamp(edgePadding, screenSize.height - balloonContentHeight - tailSize - edgePadding);
-        tailOffset = (targetRect.center.dy - top)
-            .clamp(tailSize * 2, balloonContentHeight - tailSize * 2);
+            .clamp(
+              edgePadding,
+              screenSize.height - balloonContentHeight - tailSize - edgePadding,
+            );
+        tailOffset = (targetRect.center.dy - top).clamp(
+          tailSize * 2,
+          balloonContentHeight - tailSize * 2,
+        );
         break;
     }
 
@@ -265,7 +292,7 @@ class _ShowcaseOverlay extends StatelessWidget {
               tailSize: tailSize,
               tailOffset: tailOffset,
               title: step.title,
-              description: step.description,
+              content: step.content,
               currentStep: controller.currentIndex + 1,
               totalSteps: controller.totalSteps,
               isLastStep: controller.isLastStep,
@@ -312,7 +339,7 @@ class _ChatBalloon extends StatelessWidget {
     required this.tailSize,
     required this.tailOffset,
     required this.title,
-    required this.description,
+    required this.content,
     required this.currentStep,
     required this.totalSteps,
     required this.isLastStep,
@@ -324,7 +351,7 @@ class _ChatBalloon extends StatelessWidget {
   final double tailSize;
   final double tailOffset;
   final String title;
-  final String description;
+  final Widget content;
   final int currentStep;
   final int totalSteps;
   final bool isLastStep;
@@ -387,15 +414,10 @@ class _ChatBalloon extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            // Description
-            Text(
-              description,
-              style: const TextStyle(fontSize: 12, color: Colors.black54),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 10),
+            // const SizedBox(height: 6),
+            // Custom content widget
+            content,
+            // const SizedBox(height: 10),
             // Footer: step counter + next / done button
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -407,8 +429,10 @@ class _ChatBalloon extends StatelessWidget {
                 GestureDetector(
                   onTap: onNext,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.primary,
                       borderRadius: BorderRadius.circular(20),
