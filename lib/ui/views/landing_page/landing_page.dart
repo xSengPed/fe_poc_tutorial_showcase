@@ -1,3 +1,4 @@
+import 'package:fe_poc_tutorial_showcase/ui/views/example_page/example_page.dart';
 import 'package:fe_poc_tutorial_showcase/ui/widgets/quick_action_panel.dart';
 import 'package:fe_poc_tutorial_showcase/ui/widgets/tutorial_showcase/custom_showcase.dart';
 import 'package:flutter/material.dart';
@@ -13,61 +14,40 @@ class LandingPage extends StatefulWidget {
 class _LandingPageState extends State<LandingPage> {
   late final ShowcaseController _showcaseController = ShowcaseController(
     steps: [
-      // Menu 1 — lottie + text
+      // Menu 1 — lottie header + text
       ShowcaseStep(
         title: 'Menu 1',
         placement: ShowcasePlacement.below,
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                heightFactor: 0.9,
-                child: Lottie.asset(
-                  'assets/lottie/homepage_step_01.json',
-                  height: 256,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-            const Text(
-              'แตะที่นี่เพื่อเข้าถึง Menu 1 และตัวเลือกที่มีให้บริการ',
-              style: TextStyle(fontSize: 12, color: Colors.black54),
-            ),
-          ],
+        headerWidget: Lottie.asset(
+          'assets/lottie/homepage_step_01.json',
+          height: 160,
+          width: double.infinity,
+          fit: BoxFit.cover,
+        ),
+        content: const Text(
+          'แตะที่นี่เพื่อเข้าถึง Menu 1 และตัวเลือกที่มีให้บริการ',
+          style: TextStyle(fontSize: 12, color: Colors.black54),
         ),
       ),
-      // Menu 2 — lottie + icon + text row
+      // Menu 2 — lottie header + icon + text row
       ShowcaseStep(
         title: 'Menu 2',
         placement: ShowcasePlacement.below,
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRect(
-              child: Align(
-                alignment: Alignment.topCenter,
-                heightFactor: 0.8,
-                child: Lottie.asset(
-                  'assets/lottie/homepage_step_02.json',
-                  height: 90,
-                  fit: BoxFit.contain,
-                ),
+        headerWidget: Lottie.asset(
+          'assets/lottie/homepage_step_02.json',
+          height: 160,
+          width: double.infinity,
+          fit: BoxFit.cover,
+        ),
+        content: Row(
+          children: const [
+            Icon(Icons.flash_on_rounded, size: 16, color: Colors.amber),
+            SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Quick Action ที่ใช้บ่อยที่สุด เข้าถึงได้ใน 1 แตะ',
+                style: TextStyle(fontSize: 12, color: Colors.black54),
               ),
-            ),
-            Row(
-              children: const [
-                Icon(Icons.flash_on_rounded, size: 16, color: Colors.amber),
-                SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Quick Action ที่ใช้บ่อยที่สุด เข้าถึงได้ใน 1 แตะ',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -151,6 +131,18 @@ class _LandingPageState extends State<LandingPage> {
             children: [
               const SizedBox(height: 16),
               QuickActionPanel(showcaseController: _showcaseController),
+
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ExamplePage(),
+                    ),
+                  );
+                },
+                child: Text('View Example Page'),
+              ),
             ],
           ),
         ),

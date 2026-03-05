@@ -13,19 +13,28 @@ import 'package:flutter/material.dart';
 /// - [rightOf] → balloon right of target, tail points left
 enum ShowcasePlacement { above, below, leftOf, rightOf }
 
+// Shared border radius used by both the painter and ClipRRect on the header.
+const _kBalloonRadius = 12.0;
+
 /// Represents one step in the tutorial showcase sequence.
 class ShowcaseStep {
   ShowcaseStep({
     required this.title,
     required this.content,
+    this.headerWidget,
     this.placement = ShowcasePlacement.below,
     this.tailSize = 16.0,
   });
 
   final String title;
 
-  /// Custom widget displayed in the balloon body below the title.
-  /// Can be any widget — Text, Column, Image, Lottie, etc.
+  /// Optional widget rendered at the very top of the balloon, edge-to-edge,
+  /// clipped by the balloon's rounded corners. Ideal for Lottie animations
+  /// or images that should span the full balloon width.
+  final Widget? headerWidget;
+
+  /// Custom widget displayed in the balloon body below the header.
+  /// Can be any widget — Text, Column, Row, etc.
   final Widget content;
 
   /// Preferred placement of the balloon relative to the target widget.
@@ -175,7 +184,9 @@ class _ShowcaseOverlay extends StatelessWidget {
     const minSpace = 160.0;
     switch (preferred) {
       case ShowcasePlacement.above:
-        if (target.top > minSpace) return ShowcasePlacement.above;
+        if (target.top > minSpace) {
+          return ShowcasePlacement.above;
+        }
         if (screen.height - target.bottom > minSpace) {
           return ShowcasePlacement.below;
         }
@@ -184,10 +195,14 @@ class _ShowcaseOverlay extends StatelessWidget {
         if (screen.height - target.bottom > minSpace) {
           return ShowcasePlacement.below;
         }
-        if (target.top > minSpace) return ShowcasePlacement.above;
+        if (target.top > minSpace) {
+          return ShowcasePlacement.above;
+        }
         return ShowcasePlacement.above;
       case ShowcasePlacement.leftOf:
-        if (target.left > minSpace) return ShowcasePlacement.leftOf;
+        if (target.left > minSpace) {
+          return ShowcasePlacement.leftOf;
+        }
         if (screen.width - target.right > minSpace) {
           return ShowcasePlacement.rightOf;
         }
@@ -196,7 +211,9 @@ class _ShowcaseOverlay extends StatelessWidget {
         if (screen.width - target.right > minSpace) {
           return ShowcasePlacement.rightOf;
         }
-        if (target.left > minSpace) return ShowcasePlacement.leftOf;
+        if (target.left > minSpace) {
+          return ShowcasePlacement.leftOf;
+        }
         return ShowcasePlacement.below;
     }
   }
@@ -298,6 +315,7 @@ class _ShowcaseOverlay extends StatelessWidget {
               isLastStep: controller.isLastStep,
               onNext: controller.next,
               onClose: controller.close,
+              headerWidget: step.headerWidget,
             ),
           ),
         ],
@@ -345,6 +363,7 @@ class _ChatBalloon extends StatelessWidget {
     required this.isLastStep,
     required this.onNext,
     required this.onClose,
+    this.headerWidget,
   });
 
   final ShowcasePlacement placement;
@@ -358,99 +377,156 @@ class _ChatBalloon extends StatelessWidget {
   final VoidCallback onNext;
   final VoidCallback onClose;
 
+  /// Optional widget rendered edge-to-edge at the top of the balloon body,
+  /// clipped by the balloon's rounded top corners.
+  final Widget? headerWidget;
+
+  // Padding used when there is NO headerWidget — tail space is included here.
   EdgeInsets get _contentPadding {
     const base = 12.0;
     switch (placement) {
       case ShowcasePlacement.above:
-        // Tail at bottom → extra padding at bottom
         return EdgeInsets.fromLTRB(base, base, base, base + tailSize);
       case ShowcasePlacement.below:
-        // Tail at top → extra padding at top
         return EdgeInsets.fromLTRB(base, base + tailSize, base, base);
       case ShowcasePlacement.leftOf:
-        // Tail at right → extra padding at right
         return EdgeInsets.fromLTRB(base, base, base + tailSize, base);
       case ShowcasePlacement.rightOf:
-        // Tail at left → extra padding at left
         return EdgeInsets.fromLTRB(base + tailSize, base, base, base);
     }
   }
 
+  // Padding used when headerWidget IS present — tail space handled explicitly.
+  EdgeInsets get _bodyPadding {
+    const base = 12.0;
+    switch (placement) {
+      case ShowcasePlacement.above:
+        // tail is at bottom, header is at top → need bottom tail gap
+        return EdgeInsets.fromLTRB(base, base, base, base + tailSize);
+      case ShowcasePlacement.leftOf:
+        return EdgeInsets.fromLTRB(base, base, base + tailSize, base);
+      case ShowcasePlacement.rightOf:
+        return EdgeInsets.fromLTRB(base + tailSize, base, base, base);
+      default:
+        return const EdgeInsets.all(base);
+    }
+  }
+
+  Widget _buildFooter(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '$currentStep / $totalSteps',
+          style: const TextStyle(fontSize: 11, color: Colors.black38),
+        ),
+        GestureDetector(
+          onTap: onNext,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              isLastStep ? 'Done' : 'Next',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return CustomPaint(
-      painter: _BalloonPainter(
-        placement: placement,
-        tailSize: tailSize,
-        tailOffset: tailOffset,
-      ),
-      child: Padding(
-        padding: _contentPadding,
+    final painter = _BalloonPainter(
+      placement: placement,
+      tailSize: tailSize,
+      tailOffset: tailOffset,
+    );
+
+    // ── No header: original single-padding layout ─────────────────────────────
+    if (headerWidget == null) {
+      return CustomPaint(
+        painter: painter,
+        child: Padding(
+          padding: _contentPadding,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              content,
+              _buildFooter(context),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ── With header: edge-to-edge widget clipped to balloon top corners ───────
+    // Close button overlaid at top-right corner of the header area.
+    final clippedHeader = Stack(
+      children: [
+        ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(_kBalloonRadius),
+            topRight: Radius.circular(_kBalloonRadius),
+          ),
+          child: headerWidget,
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: GestureDetector(
+            onTap: onClose,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.35),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // For `below`: tail is at the top → push header down by tailSize first.
+    // For all others: header sits at the very top of the body.
+    final children = <Widget>[
+      if (placement == ShowcasePlacement.below) SizedBox(height: tailSize),
+      clippedHeader,
+      Padding(
+        padding: _bodyPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title row with close button
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: onClose,
-                  child: const Icon(
-                    Icons.close_rounded,
-                    size: 18,
-                    color: Colors.black45,
-                  ),
-                ),
-              ],
-            ),
-            // const SizedBox(height: 6),
-            // Custom content widget
             content,
-            // const SizedBox(height: 10),
-            // Footer: step counter + next / done button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '$currentStep / $totalSteps',
-                  style: const TextStyle(fontSize: 11, color: Colors.black38),
-                ),
-                GestureDetector(
-                  onTap: onNext,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      isLastStep ? 'Done' : 'Next',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            _buildFooter(context),
           ],
         ),
+      ),
+    ];
+
+    return CustomPaint(
+      painter: painter,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
       ),
     );
   }
@@ -477,7 +553,7 @@ class _BalloonPainter extends CustomPainter {
   final double tailOffset;
 
   static const _backgroundColor = Colors.white;
-  static const _borderRadius = 12.0;
+  static const _borderRadius = _kBalloonRadius;
 
   @override
   void paint(Canvas canvas, Size size) {

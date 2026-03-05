@@ -32,7 +32,7 @@ enum ShowcasePlacement { above, below, leftOf, rightOf }
 | `leftOf` | Balloon อยู่ซ้ายของ Target | ขวา (ขอบขวาของ Balloon) |
 | `rightOf` | Balloon อยู่ขวาของ Target | ซ้าย (ขอบซ้ายของ Balloon) |
 
-> ระบบจะ Auto-detect พื้นที่ว่างบนหน้าจอ หากพื้นที่ตาม `preferredPlacement` ไม่เพียงพอ (< 160px) จะ Fallback ไปยังทิศทางตรงข้ามโดยอัตโนมัติ
+> ระบบจะ Auto-detect พื้นที่ว่างบนหน้าจอ หากพื้นที่ตาม `placement` ไม่เพียงพอ (< 160px) จะ Fallback ไปยังทิศทางตรงข้ามโดยอัตโนมัติ
 
 ---
 
@@ -43,7 +43,8 @@ Data class สำหรับกำหนดข้อมูลของแต่
 ```dart
 ShowcaseStep({
   required String title,
-  required String description,
+  required Widget content,
+  Widget? headerWidget,
   ShowcasePlacement placement = ShowcasePlacement.below,
   double tailSize = 16.0,
 })
@@ -53,22 +54,83 @@ ShowcaseStep({
 
 | Parameter | Type | Default | คำอธิบาย |
 |---|---|---|---|
-| `title` | `String` | required | หัวข้อที่แสดงใน Balloon |
-| `description` | `String` | required | คำอธิบายที่แสดงใน Balloon (max 3 บรรทัด) |
+| `title` | `String` | required | หัวข้อที่แสดงใน Balloon (ใช้ภายใน controller เท่านั้น) |
+| `content` | `Widget` | required | Widget ที่แสดงในพื้นที่ body ของ Balloon — ใส่ได้ทุกประเภท |
+| `headerWidget` | `Widget?` | `null` | Widget แสดงแบบ edge-to-edge ที่ขอบบนของ Balloon ดู [headerWidget](#headerwidget) |
 | `placement` | `ShowcasePlacement` | `below` | ตำแหน่ง Balloon ที่ต้องการ |
-| `tailSize` | `double` | `16.0` | ขนาด (ฐาน) ของหางสามเหลี่ยม เป็น px |
+| `tailSize` | `double` | `16.0` | ขนาด (ฐาน) ของหางสามเหลี่ยม เป็น px ปรับได้ต่อ Step |
+
+### ตัวอย่าง content
+
+`content` รับ Widget ใดก็ได้ ตัวอย่างรูปแบบที่ใช้ได้:
+
+```dart
+// Text ธรรมดา
+content: const Text('คำอธิบาย...', style: TextStyle(fontSize: 12, color: Colors.black54))
+
+// Row — icon + text
+content: Row(
+  children: [
+    const Icon(Icons.flash_on_rounded, size: 16, color: Colors.amber),
+    const SizedBox(width: 6),
+    const Expanded(child: Text('คำอธิบาย...')),
+  ],
+)
+
+// Column — หลายบรรทัด
+content: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    Text('บรรทัด 1'),
+    Text('บรรทัด 2'),
+  ],
+)
+
+// Wrap — tag chips
+content: Wrap(
+  spacing: 6,
+  children: [Chip(label: Text('Tag 1')), Chip(label: Text('Tag 2'))],
+)
+```
 
 ### ตัวอย่างการปรับ tailSize
 
 ```dart
-// หางขนาดเล็ก (subtle)
-ShowcaseStep(title: '...', description: '...', tailSize: 10)
+ShowcaseStep(title: '...', content: Text('...'), tailSize: 10)  // เล็ก
+ShowcaseStep(title: '...', content: Text('...'))                 // default (16)
+ShowcaseStep(title: '...', content: Text('...'), tailSize: 28)  // ใหญ่
+```
 
-// หางขนาดปกติ (default)
-ShowcaseStep(title: '...', description: '...')
+---
 
-// หางขนาดใหญ่ (เด่นชัด)
-ShowcaseStep(title: '...', description: '...', tailSize: 28)
+## headerWidget
+
+`Widget?` ที่แสดงแบบ **edge-to-edge** ที่ขอบบนสุดของ Balloon โดยถูก Clip ด้วยมุมโค้งของ Balloon (topLeft + topRight) เหมาะสำหรับ Lottie animation หรือ Image ที่ต้องการให้เต็มความกว้าง
+
+### พฤติกรรม
+
+- แสดงก่อน `content` เสมอ ไม่มี horizontal padding
+- ถูก Clip ด้วย `ClipRRect` ที่มุมบนซ้ายและบนขวา ให้ตรงกับขอบ Balloon
+- **ปุ่ม X (Close)** วางซ้อนทับมุมบนขวาของ header โดยอัตโนมัติ (ไม่ต้องกำหนดเอง)
+- สำหรับ `below` placement: header จะถูกดันลงมาให้เริ่มตรงกับขอบบนของ body (หลัง tail area)
+
+### ตัวอย่างการใช้ Lottie เป็น header
+
+```dart
+ShowcaseStep(
+  title: 'Menu 1',
+  placement: ShowcasePlacement.below,
+  headerWidget: Lottie.asset(
+    'assets/lottie/step_01.json',
+    height: 160,
+    width: double.infinity,
+    fit: BoxFit.cover,
+  ),
+  content: const Text(
+    'คำอธิบาย Menu 1',
+    style: TextStyle(fontSize: 12, color: Colors.black54),
+  ),
+)
 ```
 
 ---
@@ -136,16 +198,22 @@ CustomShowcase({
 class _MyPageState extends State<MyPage> {
   late final ShowcaseController _controller = ShowcaseController(
     steps: [
+      // Step ธรรมดา — content เป็น Text
       ShowcaseStep(
         title: 'ปุ่มค้นหา',
-        description: 'แตะที่นี่เพื่อค้นหาสิ่งที่ต้องการ',
         placement: ShowcasePlacement.below,
+        content: const Text(
+          'แตะที่นี่เพื่อค้นหาสิ่งที่ต้องการ',
+          style: TextStyle(fontSize: 12, color: Colors.black54),
+        ),
       ),
+      // Step มี Lottie header
       ShowcaseStep(
         title: 'ปุ่มเพิ่ม',
-        description: 'สร้างรายการใหม่ได้ที่นี่',
         placement: ShowcasePlacement.leftOf,
         tailSize: 20,
+        headerWidget: Lottie.asset('assets/lottie/add.json', height: 120),
+        content: const Text('สร้างรายการใหม่ได้ที่นี่'),
       ),
     ],
   );
@@ -167,16 +235,11 @@ class _MyPageState extends State<MyPage> {
 Widget build(BuildContext context) {
   return Column(
     children: [
-      // stepIndex: 0 → ผูกกับ ShowcaseStep แรก
       CustomShowcase(
         controller: _controller,
         stepIndex: 0,
-        child: IconButton(
-          icon: const Icon(Icons.search),
-          onPressed: () {},
-        ),
+        child: IconButton(icon: const Icon(Icons.search), onPressed: () {}),
       ),
-      // stepIndex: 1 → ผูกกับ ShowcaseStep ที่สอง
       CustomShowcase(
         controller: _controller,
         stepIndex: 1,
@@ -205,10 +268,39 @@ ElevatedButton(
 
 - **Backdrop:** พื้นหลังจะมืดลง (opacity 65%) และมีช่องสว่างตรง Target Widget
 - **แตะ Backdrop:** ไม่มีผลใดๆ — ต้องปิดผ่านปุ่ม X หรือ Done เท่านั้น
-- **ปุ่ม X:** ปิด Tutorial ทั้งหมด
-- **ปุ่ม Next:** เลื่อนไปยัง Step ถัดไป
-- **ปุ่ม Done:** แสดงเมื่อถึง Step สุดท้าย กดแล้วปิด Tutorial
+- **ปุ่ม X:** วางซ้อนทับมุมบนขวาของ `headerWidget` (circle button กึ่งโปร่งใส) — ปิด Tutorial ทั้งหมด
+- **ปุ่ม Next:** เลื่อนไปยัง Step ถัดไป อยู่ใน footer ของ Balloon
+- **ปุ่ม Done:** แสดงแทน Next เมื่อถึง Step สุดท้าย กดแล้วปิด Tutorial
 - **Step Counter:** แสดง `ปัจจุบัน / ทั้งหมด` มุมล่างซ้ายของ Balloon
+- **Balloon Width:** เต็มความกว้างจอ หักขอบซ้าย-ขวา 16px ต่อข้าง
+
+---
+
+## Balloon Layout
+
+### ไม่มี headerWidget
+
+```
+┌──────────────────────────────┐  ← rounded corners
+│  content widget              │
+│  ─────────────────────────── │
+│  1 / 3              [ Next ] │
+└──────────────────────────────┘
+              ▲  tail
+```
+
+### มี headerWidget (placement: below)
+
+```
+              ▲  tail
+┌──────────────────────────────┐  ← rounded corners + ClipRRect
+│  [Lottie / Image]        [X] │  ← headerWidget (edge-to-edge) + close button
+├──────────────────────────────┤
+│  content widget              │
+│  ─────────────────────────── │
+│  1 / 3              [ Next ] │
+└──────────────────────────────┘
+```
 
 ---
 
@@ -221,8 +313,8 @@ ElevatedButton(
 // เพิ่ม Step ใหม่
 ShowcaseStep(
   title: 'ฟีเจอร์ใหม่',
-  description: 'คำอธิบายฟีเจอร์ใหม่ที่เพิ่มเข้ามา',
   placement: ShowcasePlacement.above,
+  content: const Text('คำอธิบายฟีเจอร์ใหม่ที่เพิ่มเข้ามา'),
 )
 
 // ห่อ Widget ใหม่
@@ -242,4 +334,5 @@ CustomShowcase(
 - ต้องสร้าง `ShowcaseController` เพียงครั้งเดียวต่อหน้า (ไม่ควรสร้างใหม่ทุก `build`)
 - ต้องเรียก `_controller.dispose()` ใน `State.dispose()` เสมอ
 - `CustomShowcase` ต้องอยู่ใน Widget Tree ก่อนเรียก `start()` เพื่อให้ `GlobalKey` สามารถหาตำแหน่งของ Widget ได้
-- Balloon จะมีความกว้างคงที่ที่ 240px และปรับความสูงตามเนื้อหา (max 3 บรรทัดของ description)
+- Balloon กว้างเต็มจอ (หักขอบ 16px ต่อข้าง) และความสูงปรับตาม `content` + `headerWidget`
+- `headerWidget` ที่ใช้ Lottie ควรกำหนด `height` ตายตัวและ `fit: BoxFit.cover` เพื่อให้ fill พื้นที่และถูก clip ที่ขอบ Balloon ได้อย่างถูกต้อง
