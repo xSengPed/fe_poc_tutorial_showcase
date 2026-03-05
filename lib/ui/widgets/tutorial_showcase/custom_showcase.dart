@@ -247,8 +247,9 @@ class _ShowcaseOverlay extends StatelessWidget {
       child: Stack(
         children: [
           // Darkened backdrop with spotlight cutout around target
-          GestureDetector(
-            onTap: controller.close,
+          // AbsorbPointer prevents taps from passing through to widgets below
+          // without triggering any action (overlay cannot be dismissed by tapping backdrop)
+          AbsorbPointer(
             child: CustomPaint(
               painter: _SpotlightPainter(targetRect: targetRect.inflate(6)),
               size: screenSize,

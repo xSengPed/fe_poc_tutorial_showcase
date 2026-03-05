@@ -204,7 +204,7 @@ ElevatedButton(
 ## UX Behavior
 
 - **Backdrop:** พื้นหลังจะมืดลง (opacity 65%) และมีช่องสว่างตรง Target Widget
-- **แตะ Backdrop:** ปิด Tutorial ทันที (เทียบเท่ากับการกดปุ่ม X)
+- **แตะ Backdrop:** ไม่มีผลใดๆ — ต้องปิดผ่านปุ่ม X หรือ Done เท่านั้น
 - **ปุ่ม X:** ปิด Tutorial ทั้งหมด
 - **ปุ่ม Next:** เลื่อนไปยัง Step ถัดไป
 - **ปุ่ม Done:** แสดงเมื่อถึง Step สุดท้าย กดแล้วปิด Tutorial
